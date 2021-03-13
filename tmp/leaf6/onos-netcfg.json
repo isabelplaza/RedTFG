@@ -1,0 +1,11 @@
+{
+  "devices": {
+    "device:leaf6": {
+      "basic": {
+        "managementAddress": "grpc://localhost:50006?device_id=1", 
+        "driver": "stratum-bmv2", 
+        "pipeconf": "org.onosproject.pipelines.basic"
+      }
+    }
+  }
+}
