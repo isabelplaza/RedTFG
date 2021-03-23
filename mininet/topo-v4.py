@@ -96,45 +96,45 @@ class TutorialTopo(Topo):
     def __init__(self, *args, **kwargs):
         Topo.__init__(self, *args, **kwargs)
 
+
         # Leaves
         # gRPC port 50001
         leaf1 = self.addSwitch('leaf1', cls=StratumBmv2Switch, cpuport=CPU_PORT)
         # gRPC port 50002
         leaf2 = self.addSwitch('leaf2', cls=StratumBmv2Switch, cpuport=CPU_PORT)
-
-        # Spines
         # gRPC port 50003
-        spine1 = self.addSwitch('spine1', cls=StratumBmv2Switch, cpuport=CPU_PORT)
+        leaf3 = self.addSwitch('leaf3', cls=StratumBmv2Switch, cpuport=CPU_PORT)
         # gRPC port 50004
-        spine2 = self.addSwitch('spine2', cls=StratumBmv2Switch, cpuport=CPU_PORT)
+        leaf4 = self.addSwitch('leaf4', cls=StratumBmv2Switch, cpuport=CPU_PORT)
+        # gRPC port 50005
+        leaf5 = self.addSwitch('leaf5', cls=StratumBmv2Switch, cpuport=CPU_PORT)
+        # gRPC port 50006
+        leaf6 = self.addSwitch('leaf6', cls=StratumBmv2Switch, cpuport=CPU_PORT)
+
 
         # Switch Links
-        self.addLink(spine1, leaf1)
-        self.addLink(spine1, leaf2)
-        self.addLink(spine2, leaf1)
-        self.addLink(spine2, leaf2)
+        self.addLink(leaf2, leaf3)
+        self.addLink(leaf3, leaf4)
+        self.addLink(leaf1, leaf5)
+        self.addLink(leaf5, leaf4)
+        self.addLink(leaf6, leaf2)
+        self.addLink(leaf6, leaf4)
+        self.addLink(leaf6, leaf5)
+        self.addLink(leaf1, leaf2)
+
 
         # IPv4 hosts attached to leaf 1
-        h1a = self.addHost('h1a', cls=IPv4Host, mac="00:00:00:00:00:1A",
-                           ip='172.16.1.1/24', gw='172.16.1.254')
-        h1b = self.addHost('h1b', cls=IPv4Host, mac="00:00:00:00:00:1B",
-                           ip='172.16.1.2/24', gw='172.16.1.254')
-        h1c = self.addHost('h1c', cls=TaggedIPv4Host, mac="00:00:00:00:00:1C",
-                           ip='172.16.1.3/24', gw='172.16.1.254', vlan=100)
-        h2 = self.addHost('h2', cls=TaggedIPv4Host, mac="00:00:00:00:00:20",
-                          ip='172.16.2.1/24', gw='172.16.2.254', vlan=200)
-        self.addLink(h1a, leaf1)  # port 3
-        self.addLink(h1b, leaf1)  # port 4
-        self.addLink(h1c, leaf1)  # port 5
-        self.addLink(h2, leaf1)  # port 6
+        h1 = self.addHost('h1', cls=IPv4Host, mac="00:00:00:00:00:1A",
+                          ip='172.16.1.1/24', gw='172.16.1.254')
 
-        # IPv4 hosts attached to leaf 2
-        h3 = self.addHost('h3', cls=TaggedIPv4Host, mac="00:00:00:00:00:30",
-                          ip='172.16.3.1/24', gw='172.16.3.254', vlan=300)
-        h4 = self.addHost('h4', cls=IPv4Host, mac="00:00:00:00:00:40",
-                          ip='172.16.4.1/24', gw='172.16.4.254')
-        self.addLink(h3, leaf2)  # port 3
-        self.addLink(h4, leaf2)  # port 4
+        self.addLink(h1, leaf1)  # port 3
+
+        # IPv4 hosts attached to leaf 4
+        h2 = self.addHost('h2', cls=IPv4Host, mac="00:00:00:00:00:1B",
+                          ip='172.16.1.2/24', gw='172.16.1.254')
+
+        self.addLink(h2, leaf4)  # port 4
+
 
 
 def main():
