@@ -12,10 +12,6 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * 
- * Modified by David Franco
- * I2T Research Group
- * University of the Basque Country UPV/EHU
  */
 
 package org.onosproject.ngsdn.tutorial;
@@ -291,7 +287,7 @@ public class Ipv6SimpleRoutingComponent {
     /**
      * Selects a path from the given set that does not lead back to the
      * specified port if possible.
-    */
+     */
     private Path pickForwardPathIfPossible(Set<Path> paths, PortNumber notToPort) {
         for (Path path : paths) {
             if (!path.src().port().equals(notToPort)) {
@@ -304,6 +300,17 @@ public class Ipv6SimpleRoutingComponent {
     private void setUpPath(HostId srcId, HostId dstId) {
         Host src = hostService.getHost(srcId);
         Host dst = hostService.getHost(dstId);
+
+        // Check if hosts are located at the same switch
+        log.info("Src switch id={} and Dst switch id={}",src.location().deviceId(), dst.location().deviceId());
+        if (src.location().deviceId().toString().equals(dst.location().deviceId().toString())) {
+            PortNumber outPort = dst.location().port();
+            DeviceId devId = dst.location().deviceId();
+            FlowRule nextHopRule = createL2NextHopRule(devId, dst.mac(), outPort);
+            flowRuleService.applyFlowRules(nextHopRule);
+            log.info("Hosts in the same switch");
+            return;
+        }
 
         // Get all the available paths between two given hosts
         // A path is a collection of links
@@ -353,9 +360,8 @@ public class Ipv6SimpleRoutingComponent {
 
         //deviceId1 = "device:leaf1";
         HostId h1Id = HostId.hostId("00:00:00:00:00:1A/None");
-
-        //deviceId2 = "device:leaf4";
         HostId h2Id = HostId.hostId("00:00:00:00:00:1B/None");
+
 
         // Set bidirectional path
         setUpPath(h1Id, h2Id);

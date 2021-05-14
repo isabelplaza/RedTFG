@@ -42,6 +42,8 @@ ENV RUNTIME_DEPS \
     make
 RUN install_packages $RUNTIME_DEPS
 
+ADD ./shared /root
+
 COPY --from=builder /output /
 
 ENV DOCKER_RUN true

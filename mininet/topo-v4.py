@@ -100,40 +100,19 @@ class TutorialTopo(Topo):
         # Leaves
         # gRPC port 50001
         leaf1 = self.addSwitch('leaf1', cls=StratumBmv2Switch, cpuport=CPU_PORT)
-        # gRPC port 50002
-        leaf2 = self.addSwitch('leaf2', cls=StratumBmv2Switch, cpuport=CPU_PORT)
-        # gRPC port 50003
-        leaf3 = self.addSwitch('leaf3', cls=StratumBmv2Switch, cpuport=CPU_PORT)
-        # gRPC port 50004
-        leaf4 = self.addSwitch('leaf4', cls=StratumBmv2Switch, cpuport=CPU_PORT)
-        # gRPC port 50005
-        leaf5 = self.addSwitch('leaf5', cls=StratumBmv2Switch, cpuport=CPU_PORT)
-        # gRPC port 50006
-        leaf6 = self.addSwitch('leaf6', cls=StratumBmv2Switch, cpuport=CPU_PORT)
-
 
         # Switch Links
-        self.addLink(leaf2, leaf3)
-        self.addLink(leaf3, leaf4)
-        self.addLink(leaf1, leaf5)
-        self.addLink(leaf5, leaf4)
-        self.addLink(leaf6, leaf2)
-        self.addLink(leaf6, leaf4)
-        self.addLink(leaf6, leaf5)
-        self.addLink(leaf1, leaf2)
+        #self.addLink(leaf1, leaf2) #port1
 
 
         # IPv4 hosts attached to leaf 1
         h1 = self.addHost('h1', cls=IPv4Host, mac="00:00:00:00:00:1A",
                           ip='172.16.1.1/24', gw='172.16.1.254')
+        self.addLink(h1, leaf1)  # port 1
 
-        self.addLink(h1, leaf1)  # port 3
-
-        # IPv4 hosts attached to leaf 4
         h2 = self.addHost('h2', cls=IPv4Host, mac="00:00:00:00:00:1B",
                           ip='172.16.1.2/24', gw='172.16.1.254')
-
-        self.addLink(h2, leaf4)  # port 4
+        self.addLink(h2, leaf1)  # port 2
 
 
 

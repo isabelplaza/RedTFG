@@ -51,71 +51,6 @@ tables {
 }
 tables {
   preamble {
-    id: 33592650
-    name: "IngressPipeImpl.ndp_reply_table"
-    alias: "ndp_reply_table"
-  }
-  match_fields {
-    id: 1
-    name: "hdr.ndp.target_ipv6_addr"
-    bitwidth: 128
-    match_type: EXACT
-  }
-  action_refs {
-    id: 16806517
-  }
-  action_refs {
-    id: 16800567
-    annotations: "@defaultonly"
-    scope: DEFAULT_ONLY
-  }
-  direct_resource_ids: 318767233
-  size: 1024
-}
-tables {
-  preamble {
-    id: 33589970
-    name: "IngressPipeImpl.my_station_table"
-    alias: "my_station_table"
-  }
-  match_fields {
-    id: 1
-    name: "hdr.ethernet.dst_addr"
-    bitwidth: 48
-    match_type: EXACT
-  }
-  action_refs {
-    id: 16800567
-  }
-  direct_resource_ids: 318806143
-  size: 1024
-}
-tables {
-  preamble {
-    id: 33594817
-    name: "IngressPipeImpl.routing_v6_table"
-    alias: "routing_v6_table"
-  }
-  match_fields {
-    id: 1
-    name: "hdr.ipv6.dst_addr"
-    bitwidth: 128
-    match_type: LPM
-  }
-  action_refs {
-    id: 16841361
-  }
-  action_refs {
-    id: 16800567
-    annotations: "@defaultonly"
-    scope: DEFAULT_ONLY
-  }
-  implementation_id: 285229850
-  direct_resource_ids: 318827568
-  size: 1024
-}
-tables {
-  preamble {
     id: 33557865
     name: "IngressPipeImpl.acl_table"
     alias: "acl_table"
@@ -225,30 +160,6 @@ actions {
 }
 actions {
   preamble {
-    id: 16806517
-    name: "IngressPipeImpl.ndp_ns_to_na"
-    alias: "ndp_ns_to_na"
-  }
-  params {
-    id: 1
-    name: "target_mac"
-    bitwidth: 48
-  }
-}
-actions {
-  preamble {
-    id: 16841361
-    name: "IngressPipeImpl.set_next_hop"
-    alias: "set_next_hop"
-  }
-  params {
-    id: 1
-    name: "dmac"
-    bitwidth: 48
-  }
-}
-actions {
-  preamble {
     id: 16833331
     name: "IngressPipeImpl.send_to_cpu"
     alias: "send_to_cpu"
@@ -260,16 +171,6 @@ actions {
     name: "IngressPipeImpl.clone_to_cpu"
     alias: "clone_to_cpu"
   }
-}
-action_profiles {
-  preamble {
-    id: 285229850
-    name: "IngressPipeImpl.ecmp_selector"
-    alias: "ecmp_selector"
-  }
-  table_ids: 33594817
-  with_selector: true
-  size: 1024
 }
 direct_counters {
   preamble {
@@ -292,39 +193,6 @@ direct_counters {
     unit: BOTH
   }
   direct_table_id: 33573501
-}
-direct_counters {
-  preamble {
-    id: 318767233
-    name: "ndp_reply_table_counter"
-    alias: "ndp_reply_table_counter"
-  }
-  spec {
-    unit: BOTH
-  }
-  direct_table_id: 33592650
-}
-direct_counters {
-  preamble {
-    id: 318806143
-    name: "my_station_table_counter"
-    alias: "my_station_table_counter"
-  }
-  spec {
-    unit: BOTH
-  }
-  direct_table_id: 33589970
-}
-direct_counters {
-  preamble {
-    id: 318827568
-    name: "routing_v6_table_counter"
-    alias: "routing_v6_table_counter"
-  }
-  spec {
-    unit: BOTH
-  }
-  direct_table_id: 33594817
 }
 direct_counters {
   preamble {
