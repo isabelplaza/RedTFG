@@ -1,10 +1,10 @@
 # RedTFG
 
-//////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 Rama int_fase1:
 
-(El historial de commits del desarrollo de esta fase se encuentran disponibles en el repositorio http://github.com/isabelplaza/PruebaINT.git)
+(El historial de commits del desarrollo de esta fase se encuentra disponible en el repositorio http://github.com/isabelplaza/PruebaINT.git)
 
 Cualquier cambio en la maqueta requiere:
 
@@ -42,6 +42,6 @@ Una vez arrancada la maqueta, ejecutar los comandos directamente en los hosts de
     util/mn-cmd h2 python receive.py -c h2-eth0 # en un terminal
     util/mn-cmd h1 python send.py -e 00:00:00:00:00:1a,00:00:00:00:00:1b -i 172.16.1.1,172.16.1.2,0 -p 3 -c h1-eth0 # en otro terminal
 
-//////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
