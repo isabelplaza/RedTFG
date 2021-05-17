@@ -111,10 +111,26 @@ header icmp_t {
     bit<64>  timestamp;
 }
 
-header int_t {
-    bit<64>  egress_timestamp;
+header int_header_t {
+    bit<2>   ver;
+    bit<9>   flags;
+    bit<5>   int_cnt;
+    bit<8>   max_hop_cnt;
+    bit<8>   total_hop_cnt;
+    bit<16>  instruction_mask;
 }
 
+header int_sw_id_header_t {
+    bit      bos;
+    bit<31>  switch_id;
+}
+
+/*
+header int_egress_timestamp_t {
+    bit      bos;
+    bit<31>  egress_timestamp;
+}
+*/
 
 // Packet-in header. Prepended to packets sent to the CPU_PORT and used by the
 // P4Runtime server (Stratum) to populate the PacketIn message metadata fields.
@@ -141,7 +157,8 @@ struct parsed_headers_t {
     cpu_in_header_t cpu_in;
     ethernet_t ethernet;
     ipv4_t ipv4;
-    int_t int_header;
+    int_header_t int_header;
+    int_sw_id_header_t int_sw_id_header;
     tcp_t tcp;
     udp_t udp;
     icmp_t icmp;
@@ -396,9 +413,18 @@ control EgressPipeImpl (inout parsed_headers_t hdr,
                         inout standard_metadata_t standard_metadata) {
     apply {
 
-        if (hdr.ipv4.isValid()) { //Si la cabecera IPv4 es válida, introduzco cabecera INT
+        if (hdr.ipv4.isValid() /* && (hdr.ipv4.protocol != 0xFE)*/) { //If IPv4 header is valid, set INT header valid and set it a value
             hdr.int_header.setValid();
-            hdr.int_header.egress_timestamp = (bit<64>) standard_metadata.egress_global_timestamp;
+            hdr.int_header.ver = 0;
+            hdr.int_header.flags = 0;
+            hdr.int_header.int_cnt = 1; //just switch id
+            hdr.int_header.max_hop_cnt = 1; //first hop
+            hdr.int_header.total_hop_cnt = 1; //there is only one hop in this topology
+            hdr.int_header.instruction_mask = 32768; //set first bit for switch id metadata
+
+            hdr.int_sw_id_header.setValid();
+            hdr.int_sw_id_header.bos = 1;
+            hdr.int_sw_id_header.switch_id = 2; // standard_metadata.device_id;
         }
 
         if (standard_metadata.egress_port == CPU_PORT) {
@@ -440,6 +466,7 @@ control DeparserImpl(packet_out packet, in parsed_headers_t hdr) {
         packet.emit(hdr.ethernet);
         packet.emit(hdr.ipv4);
         packet.emit(hdr.int_header);
+        packet.emit(hdr.int_sw_id_header);
         packet.emit(hdr.tcp);
         packet.emit(hdr.udp);
         packet.emit(hdr.icmp);
