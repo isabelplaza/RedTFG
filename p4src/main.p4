@@ -177,6 +177,7 @@ struct local_metadata_t {
     bit<8>      ip_proto;
     bit<8>      icmp_type;
     bool        is_int;
+    bit<32>     sw_id;
 }
 
 
@@ -317,7 +318,18 @@ control IngressPipeImpl (inout parsed_headers_t    hdr,
         counters = direct_counter(CounterType.packets_and_bytes);
     }
 
-    //table sw_id_table { actions}
+    action set_sw_id(bit<32> sw_id) {
+            local_metadata.sw_id = sw_id;
+    }
+
+    table sw_id_table {
+        key = { /*EMPTY*/ }
+
+        actions = {
+            set_sw_id;
+        }
+
+    }
 
     // --- l2_ternary_table (for broadcast/multicast entries) ------------------
 
@@ -439,7 +451,7 @@ control EgressPipeImpl (inout parsed_headers_t hdr,
             hdr.int_header.instruction_mask = 3; //set both bits for switch id and timestamp metadata
 
             hdr.int_data_header.setValid();
-            hdr.int_data_header.switch_id = 2; // standard_metadata.device_id;
+            hdr.int_data_header.switch_id = local_metadata.sw_id;
             hdr.int_data_header.egress_timestamp = standard_metadata.egress_global_timestamp; //set egress timestamp
 
             hdr.ipv4.protocol = IP_PROTO_INT;
@@ -449,7 +461,7 @@ control EgressPipeImpl (inout parsed_headers_t hdr,
             hdr.int_header.total_hop_cnt = hdr.int_header.total_hop_cnt + 1;
 
             hdr.int_data_header.setValid();
-            hdr.int_data_header.switch_id = 2; // standard_metadata.device_id;
+            hdr.int_data_header.switch_id = local_metadata.sw_id;
             hdr.int_data_header.egress_timestamp = standard_metadata.egress_global_timestamp; //set egress timestamp
 
         }

@@ -220,30 +220,25 @@ public class Ipv6SimpleRoutingComponent {
                 deviceId, appId, tableId, match, action);
     }
 
-    /*
-    private FlowRule set_sw_id(DeviceId deviceId, MacAddress nexthopMac,
-                                         PortNumber outPort) {
 
-        final String tableId = "IngressPipeImpl.l2_exact_table";
-        final PiCriterion match = PiCriterion.builder()
-                .matchExact(PiMatchFieldId.of("hdr.ethernet.dst_addr"),
-                        nexthopMac.toBytes())
-                .build();
+    private void setSwitchId(DeviceId deviceId, int sw_id) {
 
+        final String tableId = "IngressPipeImpl.sw_id_table";
+        final PiCriterion match = null;
 
         final PiAction action = PiAction.builder()
-                .withId(PiActionId.of("IngressPipeImpl.set_egress_port"))
+                .withId(PiActionId.of("IngressPipeImpl.set_sw_id"))
                 .withParameter(new PiActionParam(
-                        PiActionParamId.of("port_num"),
-                        outPort.toLong()))
+                        PiActionParamId.of("sw_id"),
+                        sw_id))
                 .build();
 
-
-        return Utils.buildFlowRule(
+        FlowRule flowRuleSwID = Utils.buildFlowRule(
                 deviceId, appId, tableId, match, action);
+        flowRuleService.applyFlowRules(flowRuleSwID);
     }
-    */
-     */
+
+
 
     //--------------------------------------------------------------------------
     // EVENT LISTENERS
@@ -370,6 +365,7 @@ public class Ipv6SimpleRoutingComponent {
         DeviceId devId = dst.location().deviceId();
         FlowRule nextHopRule = createL2NextHopRule(devId,dst.mac(),outPort);
         flowRuleService.applyFlowRules(nextHopRule);
+
     }
 
 
@@ -392,6 +388,11 @@ public class Ipv6SimpleRoutingComponent {
         setUpPath(h1Id, h2Id);
         setUpPath(h2Id, h1Id);
 
+        DeviceId sw1_id=DeviceId.deviceId("device:leaf1");
+        DeviceId sw2_id=DeviceId.deviceId("device:leaf2");
+
+        setSwitchId(sw1_id, 1);
+        setSwitchId(sw2_id, 2);
 
     }
 }
