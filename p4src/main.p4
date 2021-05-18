@@ -50,7 +50,7 @@ const bit<16> ETHERTYPE_IPV4 = 0x0800;
 const bit<8> IP_PROTO_ICMP   = 1;
 const bit<8> IP_PROTO_TCP    = 6;
 const bit<8> IP_PROTO_UDP    = 17;
-const bit<8> IP_PROTO_INT    = 20; //intentar poner un valor que no sea de algún protocolo que vaya a usar
+const bit<8> IP_PROTO_INT    = 0xFE; //intentar poner un valor que no sea de algún protocolo que vaya a usar
 
 const mac_addr_t IPV6_MCAST_01 = 0x33_33_00_00_00_01;
 
@@ -116,16 +116,19 @@ header int_header_t {  //multiple of 8 size
     bit<2>   max_hop_cnt;       //maximun hop permitted
     bit<2>   total_hop_cnt;     //current number of hops
     bit<2>   instruction_mask;  //INT instructions
-    varbit<248>   int_metadata; //int metadata
 }
 
 /*
-INSTRUCTIONS BITMAP
+INT INSTRUCTIONS BITMAP:
 
-bit0(MSB)   switch id
-bit1        timestamp
+    bit0(MSB)   switch id
+    bit1        timestamp
 
 */
+
+header int_metadata_t {
+    varbit<248>   int_metadata; //INT metadata
+}
 
 header int_data_header_t {
     bit<32>  switch_id;
@@ -159,6 +162,7 @@ struct parsed_headers_t {
     ethernet_t ethernet;
     ipv4_t ipv4;
     int_header_t int_header;
+    int_metadata_t int_metadata;
     int_data_header_t int_data_header;
     tcp_t tcp;
     udp_t udp;
@@ -172,6 +176,7 @@ struct local_metadata_t {
     ipv6_addr_t next_srv6_sid;
     bit<8>      ip_proto;
     bit<8>      icmp_type;
+    bool        is_int;
 }
 
 
@@ -211,6 +216,7 @@ parser ParserImpl (packet_in packet,
             IP_PROTO_TCP: parse_tcp;
             IP_PROTO_UDP: parse_udp;
             IP_PROTO_ICMP: parse_icmp;
+            IP_PROTO_INT: parse_int;
             default: accept;
         }
     }
@@ -232,6 +238,14 @@ parser ParserImpl (packet_in packet,
     state parse_icmp {
         packet.extract(hdr.icmp);
         local_metadata.icmp_type = hdr.icmp.type;
+        transition accept;
+    }
+
+    state parse_int {
+        packet.extract(hdr.int_header);
+        bit<2> hop_cnt = packet.lookahead<int_header_t>().total_hop_cnt;
+        packet.extract(hdr.int_metadata, 80 * (bit<32>)hop_cnt);
+        local_metadata.is_int = true;
         transition accept;
     }
 }
@@ -302,6 +316,8 @@ control IngressPipeImpl (inout parsed_headers_t    hdr,
         @name("l2_exact_table_counter")
         counters = direct_counter(CounterType.packets_and_bytes);
     }
+
+    //table sw_id_table { actions}
 
     // --- l2_ternary_table (for broadcast/multicast entries) ------------------
 
@@ -414,16 +430,28 @@ control EgressPipeImpl (inout parsed_headers_t hdr,
                         inout standard_metadata_t standard_metadata) {
     apply {
 
-        if (hdr.ipv4.isValid() /* && (hdr.ipv4.protocol != 0xFE)*/) { //If IPv4 header is valid, set INT header valid and set it a value
+        if (hdr.ipv4.isValid() && (local_metadata.is_int != true)) { //If IPv4 header is valid, set INT header valid and set it a value
+
             hdr.int_header.setValid();
             hdr.int_header.ver = 2;
-            hdr.int_header.max_hop_cnt = 1; //there is only one hop in this topology
+            hdr.int_header.max_hop_cnt = 2; //there is only one hop in this topology
             hdr.int_header.total_hop_cnt = 1; //first hop
             hdr.int_header.instruction_mask = 3; //set both bits for switch id and timestamp metadata
 
             hdr.int_data_header.setValid();
             hdr.int_data_header.switch_id = 2; // standard_metadata.device_id;
             hdr.int_data_header.egress_timestamp = standard_metadata.egress_global_timestamp; //set egress timestamp
+
+            hdr.ipv4.protocol = IP_PROTO_INT;
+
+        } else if (hdr.ipv4.isValid() && (local_metadata.is_int == true)) {
+
+            hdr.int_header.total_hop_cnt = hdr.int_header.total_hop_cnt + 1;
+
+            hdr.int_data_header.setValid();
+            hdr.int_data_header.switch_id = 2; // standard_metadata.device_id;
+            hdr.int_data_header.egress_timestamp = standard_metadata.egress_global_timestamp; //set egress timestamp
+
         }
 
         if (standard_metadata.egress_port == CPU_PORT) {
@@ -465,6 +493,7 @@ control DeparserImpl(packet_out packet, in parsed_headers_t hdr) {
         packet.emit(hdr.ethernet);
         packet.emit(hdr.ipv4);
         packet.emit(hdr.int_header);
+        packet.emit(hdr.int_metadata);
         packet.emit(hdr.int_data_header);
         packet.emit(hdr.tcp);
         packet.emit(hdr.udp);

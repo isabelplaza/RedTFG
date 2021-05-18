@@ -220,6 +220,31 @@ public class Ipv6SimpleRoutingComponent {
                 deviceId, appId, tableId, match, action);
     }
 
+    /*
+    private FlowRule set_sw_id(DeviceId deviceId, MacAddress nexthopMac,
+                                         PortNumber outPort) {
+
+        final String tableId = "IngressPipeImpl.l2_exact_table";
+        final PiCriterion match = PiCriterion.builder()
+                .matchExact(PiMatchFieldId.of("hdr.ethernet.dst_addr"),
+                        nexthopMac.toBytes())
+                .build();
+
+
+        final PiAction action = PiAction.builder()
+                .withId(PiActionId.of("IngressPipeImpl.set_egress_port"))
+                .withParameter(new PiActionParam(
+                        PiActionParamId.of("port_num"),
+                        outPort.toLong()))
+                .build();
+
+
+        return Utils.buildFlowRule(
+                deviceId, appId, tableId, match, action);
+    }
+    */
+     */
+
     //--------------------------------------------------------------------------
     // EVENT LISTENERS
     //

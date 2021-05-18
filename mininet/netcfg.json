@@ -6,11 +6,26 @@
         "driver": "stratum-bmv2",
         "pipeconf": "org.onosproject.ngsdn-tutorial",
         "locType": "grid",
-        "gridX": 200,
+        "gridX": 150,
         "gridY": 400
       },
       "fabricDeviceConfig": {
         "myStationMac": "00:aa:00:00:00:01",
+        "mySid": "3:101:2::",
+        "isSpine": false
+      }
+    },
+    "device:leaf2": {
+      "basic": {
+        "managementAddress": "grpc://mininet:50002?device_id=1",
+        "driver": "stratum-bmv2",
+        "pipeconf": "org.onosproject.ngsdn-tutorial",
+        "locType": "grid",
+        "gridX": 250,
+        "gridY": 400
+      },
+      "fabricDeviceConfig": {
+        "myStationMac": "00:aa:00:00:00:02",
         "mySid": "3:101:2::",
         "isSpine": false
       }
@@ -30,6 +45,22 @@
       "interfaces": [
         {
           "name": "leaf1-2",
+          "ips": ["172.16.1.254/24"]
+        }
+      ]
+    },
+    "device:leaf2/1": {
+      "interfaces": [
+        {
+          "name": "leaf2-1",
+          "ips": ["172.16.1.254/24"]
+        }
+      ]
+    },
+    "device:leaf2/2": {
+      "interfaces": [
+        {
+          "name": "leaf2-2",
           "ips": ["172.16.1.254/24"]
         }
       ]
