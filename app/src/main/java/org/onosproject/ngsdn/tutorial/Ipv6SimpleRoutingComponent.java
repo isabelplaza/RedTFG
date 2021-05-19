@@ -388,11 +388,16 @@ public class Ipv6SimpleRoutingComponent {
         setUpPath(h1Id, h2Id);
         setUpPath(h2Id, h1Id);
 
+
+        // Set switches' IDs
+
         DeviceId sw1_id=DeviceId.deviceId("device:leaf1");
         DeviceId sw2_id=DeviceId.deviceId("device:leaf2");
+        DeviceId sw3_id=DeviceId.deviceId("device:leaf3");
 
         setSwitchId(sw1_id, 1);
         setSwitchId(sw2_id, 2);
+        setSwitchId(sw3_id, 3);
 
     }
 }

@@ -21,11 +21,26 @@
         "driver": "stratum-bmv2",
         "pipeconf": "org.onosproject.ngsdn-tutorial",
         "locType": "grid",
-        "gridX": 250,
+        "gridX": 450,
         "gridY": 400
       },
       "fabricDeviceConfig": {
         "myStationMac": "00:aa:00:00:00:02",
+        "mySid": "3:101:2::",
+        "isSpine": false
+      }
+    },
+    "device:leaf3": {
+      "basic": {
+        "managementAddress": "grpc://mininet:50003?device_id=1",
+        "driver": "stratum-bmv2",
+        "pipeconf": "org.onosproject.ngsdn-tutorial",
+        "locType": "grid",
+        "gridX": 300,
+        "gridY": 500
+      },
+      "fabricDeviceConfig": {
+        "myStationMac": "00:aa:00:00:00:03",
         "mySid": "3:101:2::",
         "isSpine": false
       }
@@ -49,6 +64,14 @@
         }
       ]
     },
+    "device:leaf1/3": {
+      "interfaces": [
+        {
+          "name": "leaf1-3",
+          "ips": ["172.16.1.254/24"]
+        }
+      ]
+    },
     "device:leaf2/1": {
       "interfaces": [
         {
@@ -61,6 +84,38 @@
       "interfaces": [
         {
           "name": "leaf2-2",
+          "ips": ["172.16.1.254/24"]
+        }
+      ]
+    },
+    "device:leaf2/3": {
+      "interfaces": [
+        {
+          "name": "leaf2-3",
+          "ips": ["172.16.1.254/24"]
+        }
+      ]
+    },
+    "device:leaf3/1": {
+      "interfaces": [
+        {
+          "name": "leaf3-1",
+          "ips": ["172.16.1.254/24"]
+        }
+      ]
+    },
+    "device:leaf3/2": {
+      "interfaces": [
+        {
+          "name": "leaf3-2",
+          "ips": ["172.16.1.254/24"]
+        }
+      ]
+    },
+    "device:leaf3/3": {
+      "interfaces": [
+        {
+          "name": "leaf3-3",
           "ips": ["172.16.1.254/24"]
         }
       ]
@@ -80,7 +135,7 @@
       "basic": {
         "name": "h2",
         "locType": "grid",
-        "gridX": 400,
+        "gridX": 600,
         "gridY": 400
       }
     }
