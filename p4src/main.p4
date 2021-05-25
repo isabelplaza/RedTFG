@@ -323,7 +323,7 @@ control IngressPipeImpl (inout parsed_headers_t    hdr,
     }
 
     table sw_id_table {
-        key = { /*EMPTY*/ }
+        key = { hdr.ethernet.ether_type: ternary;}
 
         actions = {
             set_sw_id;
@@ -404,6 +404,9 @@ control IngressPipeImpl (inout parsed_headers_t    hdr,
     }
 
     apply {
+
+        if (sw_id_table.apply().hit){
+        }
 
         if (hdr.cpu_out.isValid()) {
             // *** TODO EXERCISE 4
