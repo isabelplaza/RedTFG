@@ -27,6 +27,28 @@ tables {
 }
 tables {
   preamble {
+    id: 33619010
+    name: "IngressPipeImpl.sw_id_table"
+    alias: "sw_id_table"
+  }
+  match_fields {
+    id: 1
+    name: "hdr.ethernet.ether_type"
+    bitwidth: 16
+    match_type: TERNARY
+  }
+  action_refs {
+    id: 16785740
+  }
+  action_refs {
+    id: 16800567
+    annotations: "@defaultonly"
+    scope: DEFAULT_ONLY
+  }
+  size: 1024
+}
+tables {
+  preamble {
     id: 33573501
     name: "IngressPipeImpl.l2_ternary_table"
     alias: "l2_ternary_table"
@@ -144,6 +166,18 @@ actions {
     id: 1
     name: "port_num"
     bitwidth: 9
+  }
+}
+actions {
+  preamble {
+    id: 16785740
+    name: "IngressPipeImpl.set_sw_id"
+    alias: "set_sw_id"
+  }
+  params {
+    id: 1
+    name: "sw_id"
+    bitwidth: 32
   }
 }
 actions {

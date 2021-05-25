@@ -298,38 +298,41 @@ control IngressPipeImpl (inout parsed_headers_t    hdr,
 
     // --- l2_exact_table (for unicast entries) --------------------------------
 
-    action set_egress_port(port_num_t port_num) {
+     action set_egress_port(port_num_t port_num) {
         standard_metadata.egress_spec = port_num;
-    }
+     }
 
-    table l2_exact_table {
+     table l2_exact_table {
         key = {
             hdr.ethernet.dst_addr: exact;
         }
+
         actions = {
             set_egress_port;
             @defaultonly drop;
         }
+
         const default_action = drop;
         // The @name annotation is used here to provide a name to this table
         // counter, as it will be needed by the compiler to generate the
         // corresponding P4Info entity.
         @name("l2_exact_table_counter")
         counters = direct_counter(CounterType.packets_and_bytes);
-    }
+     }
 
-    action set_sw_id(bit<32> sw_id) {
-            local_metadata.sw_id = sw_id;
-    }
+     action set_sw_id(bit<32> sw_id) {
+        local_metadata.sw_id = sw_id;
+     }
 
-    table sw_id_table {
-        key = { /*EMPTY*/ }
+     table sw_id_table {
+        key = { hdr.ethernet.ether_type: ternary;}
 
         actions = {
             set_sw_id;
         }
 
-    }
+     }
+
 
     // --- l2_ternary_table (for broadcast/multicast entries) ------------------
 
@@ -405,6 +408,9 @@ control IngressPipeImpl (inout parsed_headers_t    hdr,
 
     apply {
 
+        if (sw_id_table.apply().hit){
+        }
+
         if (hdr.cpu_out.isValid()) {
             // *** TODO EXERCISE 4
             // Implement logic such that if this is a packet-out from the
@@ -446,7 +452,7 @@ control EgressPipeImpl (inout parsed_headers_t hdr,
 
             hdr.int_header.setValid();
             hdr.int_header.ver = 2;
-            hdr.int_header.max_hop_cnt = 2; //there is only one hop in this topology
+            hdr.int_header.max_hop_cnt = 3;
             hdr.int_header.total_hop_cnt = 1; //first hop
             hdr.int_header.instruction_mask = 3; //set both bits for switch id and timestamp metadata
 

@@ -116,11 +116,15 @@ class TutorialTopo(Topo):
                           ip='172.16.1.1/24', gw='172.16.1.254')
         self.addLink(h1, leaf1)  # port 3
 
+        h3 = self.addHost('h3', cls=IPv4Host, mac="00:00:00:00:00:1C",
+                          ip='172.16.1.3/24', gw='172.16.1.254')
+        self.addLink(h3, leaf1)  # port 4
+
+
         # IPv4 hosts attached to leaf 2
         h2 = self.addHost('h2', cls=IPv4Host, mac="00:00:00:00:00:1B",
                           ip='172.16.1.2/24', gw='172.16.1.254')
         self.addLink(h2, leaf2)  # port 3
-
 
 
 def main():

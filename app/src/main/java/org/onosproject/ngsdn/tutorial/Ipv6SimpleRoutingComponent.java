@@ -221,10 +221,19 @@ public class Ipv6SimpleRoutingComponent {
     }
 
 
-    private void setSwitchId(DeviceId deviceId, int sw_id) {
+    private void setSwitchId(DeviceId deviceId, HostId hostId, int sw_id) {
 
+        log.info("Setting sw_id {}",sw_id);
         final String tableId = "IngressPipeImpl.sw_id_table";
-        final PiCriterion match = null;
+        //final PiCriterion match = null;
+        Host host = hostService.getHost(hostId);
+        final int ETHERTYPE_IPV4 = 0x0800;
+        final int MASK = 0xFFFF;
+        //final String mac = "00:00:00:00:00:00";
+        final PiCriterion match = PiCriterion.builder()
+                .matchTernary(PiMatchFieldId.of("hdr.ethernet.ether_type"),
+                        ETHERTYPE_IPV4,MASK)
+                .build();
 
         final PiAction action = PiAction.builder()
                 .withId(PiActionId.of("IngressPipeImpl.set_sw_id"))
@@ -379,25 +388,26 @@ public class Ipv6SimpleRoutingComponent {
     private synchronized void setUpAllDevices() {
         // Set up host routes
 
-        //deviceId1 = "device:leaf1";
         HostId h1Id = HostId.hostId("00:00:00:00:00:1A/None");
         HostId h2Id = HostId.hostId("00:00:00:00:00:1B/None");
+        HostId h3Id = HostId.hostId("00:00:00:00:00:1C/None");
 
 
         // Set bidirectional path
         setUpPath(h1Id, h2Id);
         setUpPath(h2Id, h1Id);
-
+        setUpPath(h3Id, h2Id);
+        setUpPath(h2Id, h3Id);
 
         // Set switches' IDs
-
+        //deviceId1 = "device:leaf1";
         DeviceId sw1_id=DeviceId.deviceId("device:leaf1");
         DeviceId sw2_id=DeviceId.deviceId("device:leaf2");
         DeviceId sw3_id=DeviceId.deviceId("device:leaf3");
 
-        setSwitchId(sw1_id, 1);
-        setSwitchId(sw2_id, 2);
-        setSwitchId(sw3_id, 3);
+        setSwitchId(sw1_id, h1Id,1);
+        setSwitchId(sw2_id, h1Id,2);
+        setSwitchId(sw3_id, h1Id,3);
 
     }
 }
