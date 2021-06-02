@@ -112,10 +112,10 @@ header icmp_t {
 }
 
 header int_header_t {  //multiple of 8 size
-    bit<2>   ver;               //version number
-    bit<2>   max_hop_cnt;       //maximun hop permitted
-    bit<2>   total_hop_cnt;     //current number of hops
-    bit<2>   instruction_mask;  //INT instructions
+    bit<8>   ver;               //version number
+    bit<32>   max_hop_cnt;       //maximun hop permitted
+    bit<32>   total_hop_cnt;     //current number of hops
+    bit<8>   instruction_mask;  //INT instructions
 }
 
 /*
@@ -244,8 +244,9 @@ parser ParserImpl (packet_in packet,
 
     state parse_int {
         packet.extract(hdr.int_header);
-        bit<2> hop_cnt = packet.lookahead<int_header_t>().total_hop_cnt;
-        packet.extract(hdr.int_metadata, 80 * (bit<32>)hop_cnt);
+        bit<32> hop_cnt = packet.lookahead<int_header_t>().total_hop_cnt;
+        bit<32> offset = 80 * hop_cnt;
+        packet.extract(hdr.int_metadata, 80);
         local_metadata.is_int = true;
         transition accept;
     }

@@ -106,7 +106,7 @@ class TutorialTopo(Topo):
         leaf3 = self.addSwitch('leaf3', cls=StratumBmv2Switch, cpuport=CPU_PORT)
 
         # Switch Links
-        #self.addLink(leaf1, leaf2) #port1, port1
+        self.addLink(leaf1, leaf2) #port1, port1
         self.addLink(leaf3, leaf1) #port1, port2
         self.addLink(leaf3, leaf2) #port2, port2
 
