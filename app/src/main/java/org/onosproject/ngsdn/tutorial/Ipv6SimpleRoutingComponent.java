@@ -374,6 +374,90 @@ public class Ipv6SimpleRoutingComponent {
 
     }
 
+    /**
+     * Selects a path from the given set that is not the shortest one if possible.
+     */
+    private Path pickLongerForwardPathIfPossible(Set<Path> paths, PortNumber notToPort) {
+        log.info("Paths size: {}", paths.size());
+
+        if (paths.size() > 1) {
+            log.info("There are more than one path available");
+            int i = 0;
+            for (Path path : paths) {
+                if (!path.src().port().equals(notToPort)) {
+                    if (i == 1)
+                        log.info("Setting the second path of the available paths list");
+                        return path;
+                }
+                log.info("For loop, i: {}", i);
+                i++;
+            }
+            return null;
+
+        } else {
+            log.info("There is just one path available");
+            for (Path path : paths) {
+                if (!path.src().port().equals(notToPort)) {
+                    return path;
+                }
+            }
+            return null;
+
+        }
+    }
+
+    private void setUpLongerPath(HostId srcId, HostId dstId) {
+        Host src = hostService.getHost(srcId);
+        Host dst = hostService.getHost(dstId);
+
+        // Check if hosts are located at the same switch
+        log.info("Src switch id={} and Dst switch id={}",src.location().deviceId(), dst.location().deviceId());
+        if (src.location().deviceId().toString().equals(dst.location().deviceId().toString())) {
+            PortNumber outPort = dst.location().port();
+            DeviceId devId = dst.location().deviceId();
+            FlowRule nextHopRule = createL2NextHopRule(devId, dst.mac(), outPort);
+            flowRuleService.applyFlowRules(nextHopRule);
+            log.info("Hosts in the same switch");
+            return;
+        }
+
+        // Get all the available paths between two given hosts
+        // A path is a collection of links
+        Set<Path> paths = topologyService.getPaths(topologyService.currentTopology(),
+                src.location().deviceId(),
+                dst.location().deviceId());
+        if (paths.isEmpty()) {
+            // If there are no paths, display a warn and exit
+            log.warn("No path found");
+            return;
+        }
+
+        // Pick a path that neither leads back to where we came from nor is the shortest one;
+        // if no such path, pick a path that does not lead back to where we came from;
+        // if no such path, display a warn and exit
+        Path path = pickLongerForwardPathIfPossible(paths, src.location().port());
+        if (path == null) {
+            log.warn("Don't know where to go from here {} for {} -> {}",
+                    src.location(), srcId, dstId);
+            return;
+        }
+
+        // Install rules in the path
+        List<Link> pathLinks = path.links();
+        for (Link l : pathLinks) {
+            PortNumber outPort = l.src().port();
+            DeviceId devId = l.src().deviceId();
+            FlowRule nextHopRule = createL2NextHopRule(devId,dst.mac(),outPort);
+            flowRuleService.applyFlowRules(nextHopRule);
+        }
+        // Install rule in the last device (where dst is located)
+        PortNumber outPort = dst.location().port();
+        DeviceId devId = dst.location().deviceId();
+        FlowRule nextHopRule = createL2NextHopRule(devId,dst.mac(),outPort);
+        flowRuleService.applyFlowRules(nextHopRule);
+
+    }
+
 
     //--------------------------------------------------------------------------
     // UTILITY METHODS
@@ -388,13 +472,15 @@ public class Ipv6SimpleRoutingComponent {
         HostId h1Id = HostId.hostId("00:00:00:00:00:1A/None");
         HostId h2Id = HostId.hostId("00:00:00:00:00:1B/None");
         HostId h3Id = HostId.hostId("00:00:00:00:00:1C/None");
+        HostId h4Id = HostId.hostId("00:00:00:00:00:1D/None");
 
 
         // Set bidirectional path
         setUpPath(h1Id, h2Id);
         setUpPath(h2Id, h1Id);
-        setUpPath(h3Id, h2Id);
-        setUpPath(h2Id, h3Id);
+
+        setUpLongerPath(h3Id, h4Id);
+        setUpLongerPath(h4Id, h3Id);
 
         // Set switches' IDs
         //deviceId1 = "device:leaf1";

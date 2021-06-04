@@ -104,6 +104,14 @@
         }
       ]
     },
+    "device:leaf2/4": {
+      "interfaces": [
+        {
+          "name": "leaf2-4",
+          "ips": ["172.16.1.254/24"]
+        }
+      ]
+    },
     "device:leaf3/1": {
       "interfaces": [
         {
@@ -152,6 +160,14 @@
         "name": "h3",
         "locType": "grid",
         "gridX": 0,
+        "gridY": 500
+      }
+    },
+    "00:00:00:00:00:1D/None": {
+      "basic": {
+        "name": "h4",
+        "locType": "grid",
+        "gridX": 600,
         "gridY": 500
       }
     }
