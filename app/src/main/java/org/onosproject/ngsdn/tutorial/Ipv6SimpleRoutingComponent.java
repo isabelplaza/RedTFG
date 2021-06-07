@@ -375,9 +375,13 @@ public class Ipv6SimpleRoutingComponent {
 
     }
 
+    /*
+
+
+
     /**
      * Selects a path from the given set that is not the shortest one if possible.
-     */
+
     private Path pickLongerForwardPathIfPossible(Set<Path> paths, PortNumber notToPort) {
         log.info("PICK LONGER FORWARD PATH: Paths size: {}", paths.size());
 
@@ -461,6 +465,7 @@ public class Ipv6SimpleRoutingComponent {
 
     }
 
+    */
 
     //--------------------------------------------------------------------------
     // UTILITY METHODS
@@ -482,8 +487,11 @@ public class Ipv6SimpleRoutingComponent {
         setUpPath(h1Id, h2Id);
         setUpPath(h2Id, h1Id);
 
-        setUpLongerPath(h3Id, h4Id);
-        setUpLongerPath(h4Id, h3Id);
+        //setUpLongerPath(h3Id, h4Id);
+        //setUpLongerPath(h4Id, h3Id);
+        setUpPath(h3Id, h4Id);
+        setUpPath(h4Id, h3Id);
+        
 
         // Set switches' IDs
         //deviceId1 = "device:leaf1";

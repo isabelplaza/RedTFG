@@ -116,7 +116,7 @@ def handle_pkt(packet, flows, counters):
 
     ETHERNET_OFFSET = 0 + ETHERNET_HEADER_LENGTH
     INT_HEADER_OFFSET = ETHERNET_OFFSET + IP_HEADER_LENGTH
-    INT_METADATA_FIRST_OFFSET = INT_HEADER_OFFSET + INT_HEADER_LENGTH
+    INT_METADATA_OFFSET = INT_HEADER_OFFSET + INT_HEADER_LENGTH
 
     eth_h = Ether(pkt[0:ETHERNET_OFFSET])
     eth_h.show()
@@ -128,13 +128,13 @@ def handle_pkt(packet, flows, counters):
     f.write("\nThis is the last received packet\'s INT data.\n")
 
     for x in range(0, int_h.total_hop_cnt):
-        INT_METADATA_OFFSET = INT_METADATA_FIRST_OFFSET + (x * INT_METADATA_LENGTH)
         int_m = INT_METADATA(pkt[INT_METADATA_OFFSET:(INT_METADATA_OFFSET+INT_METADATA_LENGTH)])
         int_m.show()
         f.write("\n\nSwitch ID %d: " % (x+1))
         f.write(str(int_m.sw_id))
         f.write("\nEgress timestamp %d: " % (x+1))
         f.write(str(int_m.egress_timestamp))
+        INT_METADATA_OFFSET = INT_METADATA_OFFSET + INT_METADATA_LENGTH
 
     f.write("\n")
     f.close()
