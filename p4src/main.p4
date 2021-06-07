@@ -244,9 +244,10 @@ parser ParserImpl (packet_in packet,
 
     state parse_int {
         packet.extract(hdr.int_header);
-        bit<32> hop_cnt = packet.lookahead<int_header_t>().total_hop_cnt;
+        //bit<32> hop_cnt = packet.lookahead<int_header_t>().total_hop_cnt;
+        bit<32> hop_cnt = hdr.int_header.total_hop_cnt;
         bit<32> offset = 80 * hop_cnt;
-        packet.extract(hdr.int_metadata, 80);
+        packet.extract(hdr.int_metadata, offset);
         local_metadata.is_int = true;
         transition accept;
     }

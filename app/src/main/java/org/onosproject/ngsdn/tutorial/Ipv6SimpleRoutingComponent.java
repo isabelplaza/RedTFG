@@ -315,6 +315,7 @@ public class Ipv6SimpleRoutingComponent {
      * specified port if possible.
      */
     private Path pickForwardPathIfPossible(Set<Path> paths, PortNumber notToPort) {
+        log.info("PICK FORWARD PATH: Paths size: {}", paths.size());
         for (Path path : paths) {
             if (!path.src().port().equals(notToPort)) {
                 return path;
@@ -378,7 +379,7 @@ public class Ipv6SimpleRoutingComponent {
      * Selects a path from the given set that is not the shortest one if possible.
      */
     private Path pickLongerForwardPathIfPossible(Set<Path> paths, PortNumber notToPort) {
-        log.info("Paths size: {}", paths.size());
+        log.info("PICK LONGER FORWARD PATH: Paths size: {}", paths.size());
 
         if (paths.size() > 1) {
             log.info("There are more than one path available");
@@ -426,6 +427,8 @@ public class Ipv6SimpleRoutingComponent {
         Set<Path> paths = topologyService.getPaths(topologyService.currentTopology(),
                 src.location().deviceId(),
                 dst.location().deviceId());
+        log.info("SET UP LONGER PATH: Paths size: {}", paths.size());
+
         if (paths.isEmpty()) {
             // If there are no paths, display a warn and exit
             log.warn("No path found");
