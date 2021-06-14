@@ -30,4 +30,5 @@ public class AppConstants {
 
     public static final int CPU_PORT_ID = 255;
     public static final int CPU_CLONE_SESSION_ID = 99;
+    public static final int COLLECTOR_CLONE_SESSION_ID = 90;
 }

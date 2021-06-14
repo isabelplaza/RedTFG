@@ -132,6 +132,9 @@ tables {
     id: 16782152
   }
   action_refs {
+    id: 16790512
+  }
+  action_refs {
     id: 16796182
   }
   action_refs {
@@ -204,6 +207,13 @@ actions {
     id: 16782152
     name: "IngressPipeImpl.clone_to_cpu"
     alias: "clone_to_cpu"
+  }
+}
+actions {
+  preamble {
+    id: 16790512
+    name: "IngressPipeImpl.clone_to_collector"
+    alias: "clone_to_collector"
   }
 }
 direct_counters {

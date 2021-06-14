@@ -25,6 +25,7 @@
 // controller as P4Runtime PacketIn messages. Similarly, PacketOut messages from
 // the controller will be seen by the P4 pipeline as coming from the CPU_PORT.
 #define CPU_PORT 255
+#define COLLECTOR_PORT 4
 
 // CPU_CLONE_SESSION_ID specifies the mirroring session for packets to be cloned
 // to the CPU port. Packets associated with this session ID will be cloned to
@@ -33,6 +34,7 @@
 // needs first to insert a CloneSessionEntry that maps this session ID to the
 // CPU_PORT.
 #define CPU_CLONE_SESSION_ID 99
+#define COLLECTOR_CLONE_SESSION_ID 90
 
 // Maximum number of hops supported when using SRv6.
 // Required for Exercise 7.
@@ -388,6 +390,10 @@ control IngressPipeImpl (inout parsed_headers_t    hdr,
         clone3(CloneType.I2E, CPU_CLONE_SESSION_ID, { standard_metadata.ingress_port });
     }
 
+    action clone_to_collector() {
+        clone(CloneType.I2E, COLLECTOR_CLONE_SESSION_ID);
+    }
+
     table acl_table {
         key = {
             standard_metadata.ingress_port: ternary;
@@ -402,6 +408,7 @@ control IngressPipeImpl (inout parsed_headers_t    hdr,
         actions = {
             send_to_cpu;
             clone_to_cpu;
+            clone_to_collector;
             drop;
         }
         @name("acl_table_counter")
@@ -439,6 +446,10 @@ control IngressPipeImpl (inout parsed_headers_t    hdr,
             }
         }
 
+        if (local_metadata.sw_id == 2) {
+            clone_to_collector();
+        }
+
         // Lastly, apply the ACL table.
         acl_table.apply();
     }
@@ -472,6 +483,12 @@ control EgressPipeImpl (inout parsed_headers_t hdr,
             hdr.int_data_header.switch_id = local_metadata.sw_id;
             hdr.int_data_header.egress_timestamp = standard_metadata.egress_global_timestamp; //set egress timestamp
 
+        }
+
+
+        if (local_metadata.sw_id == 2 && standard_metadata.egress_port != COLLECTOR_PORT) {
+            hdr.int_data_header.setInvalid();
+            hdr.int_header.setInvalid();
         }
 
         if (standard_metadata.egress_port == CPU_PORT) {
