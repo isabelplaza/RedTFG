@@ -132,9 +132,6 @@ tables {
     id: 16782152
   }
   action_refs {
-    id: 16790512
-  }
-  action_refs {
     id: 16796182
   }
   action_refs {

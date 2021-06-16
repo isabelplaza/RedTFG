@@ -55,10 +55,6 @@ public class PipelinerImpl extends AbstractHandlerBehaviour implements Pipeliner
     // From the P4Info file
     private static final String ACL_TABLE = "IngressPipeImpl.acl_table";
     private static final String CLONE_TO_CPU = "IngressPipeImpl.clone_to_cpu";
-    private static final String CLONE_TO_COLLECTOR = "IngressPipeImpl.clone_to_collector";
-    private static final int COLLECTOR_PORT_ID = 4;
-    public static final int COLLECTOR_CLONE_SESSION_ID = 90;
-
 
     private final Logger log = getLogger(getClass());
 
@@ -93,20 +89,9 @@ public class PipelinerImpl extends AbstractHandlerBehaviour implements Pipeliner
                 .map(i -> (Instructions.OutputInstruction) i)
                 .anyMatch(i -> i.port().equals(PortNumber.CONTROLLER));
 
-        final boolean hasCloneToCollectorAction = obj.treatment()
-                .allInstructions().stream()
-                .filter(i -> i.type().equals(OUTPUT))
-                .map(i -> (Instructions.OutputInstruction) i)
-                .anyMatch(i -> i.port().equals(COLLECTOR_PORT_ID));
 
         if (!hasCloneToCpuAction) {
             // We support only objectives for clone to CPU behaviours (e.g. for
-            // host and link discovery)
-            obj.context().ifPresent(c -> c.onError(obj, ObjectiveError.UNSUPPORTED));
-        }
-
-        if (!hasCloneToCollectorAction) {
-            // We support only objectives for clone to COLLECTOR behaviours (e.g. for
             // host and link discovery)
             obj.context().ifPresent(c -> c.onError(obj, ObjectiveError.UNSUPPORTED));
         }
@@ -116,9 +101,6 @@ public class PipelinerImpl extends AbstractHandlerBehaviour implements Pipeliner
                 .withId(PiActionId.of(CLONE_TO_CPU))
                 .build();
 
-        final PiAction cloneToCollectorAction = PiAction.builder()
-                .withId(PiActionId.of(CLONE_TO_COLLECTOR))
-                .build();
 
         final FlowRule.Builder ruleBuilder = DefaultFlowRule.builder()
                 .forTable(PiTableId.of(ACL_TABLE))
@@ -129,22 +111,12 @@ public class PipelinerImpl extends AbstractHandlerBehaviour implements Pipeliner
                 .withTreatment(DefaultTrafficTreatment.builder()
                                        .piTableAction(cloneToCpuAction).build());
 
-        final FlowRule.Builder ruleBuilderCollector = DefaultFlowRule.builder()
-                .forTable(PiTableId.of(ACL_TABLE))
-                .forDevice(deviceId)
-                .withSelector(obj.selector())
-                .fromApp(obj.appId())
-                .withPriority(obj.priority())
-                .withTreatment(DefaultTrafficTreatment.builder()
-                        .piTableAction(cloneToCollectorAction).build());
 
 
         if (obj.permanent()) {
             ruleBuilder.makePermanent();
-            ruleBuilderCollector.makePermanent();
         } else {
             ruleBuilder.makeTemporary(obj.timeout());
-            ruleBuilderCollector.makeTemporary(obj.timeout());
         }
 
         final GroupDescription cloneGroup = Utils.buildCloneGroup(
@@ -155,24 +127,13 @@ public class PipelinerImpl extends AbstractHandlerBehaviour implements Pipeliner
                 // Just controller in this case.
                 Collections.singleton(PortNumber.CONTROLLER));
 
-        final GroupDescription cloneGroupCollector = Utils.buildCloneGroup(
-                obj.appId(),
-                deviceId,
-                COLLECTOR_CLONE_SESSION_ID,
-                // Ports where to clone the packet.
-                // Just controller in this case.
-                Collections.singleton(COLLECTOR_PORT_ID));
-
         switch (obj.op()) {
             case ADD:
                 flowRuleService.applyFlowRules(ruleBuilder.build());
-                flowRuleService.applyFlowRules(ruleBuilderCollector.build());
                 groupService.addGroup(cloneGroup);
-                groupService.addGroup(cloneGroupCollector);
                 break;
             case REMOVE:
                 flowRuleService.removeFlowRules(ruleBuilder.build());
-                flowRuleService.removeFlowRules(ruleBuilderCollector.build());
                 // Do not remove the clone group as other flow rules might be
                 // pointing to it.
                 break;

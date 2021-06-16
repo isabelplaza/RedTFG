@@ -244,6 +244,21 @@ public class Ipv6SimpleRoutingComponent {
         flowRuleService.applyFlowRules(flowRuleSwID);
     }
 
+    private void cloneToCollector(DeviceId deviceId) {
+        final int COLLECTOR_PORT_ID = 4;
+        final int COLLECTOR_CLONE_SESSION_ID = 90;
+
+        final GroupDescription cloneGroupCollector = Utils.buildCloneGroup(
+                obj.appId(),
+                deviceId,
+                COLLECTOR_CLONE_SESSION_ID,
+                // Ports where to clone the packet.
+                // Just controller in this case.
+                Collections.singleton(COLLECTOR_PORT_ID));
+
+        groupService.addGroup(cloneGroupCollector);
+
+    }
 
 
     //--------------------------------------------------------------------------
@@ -502,6 +517,8 @@ public class Ipv6SimpleRoutingComponent {
         setSwitchId(sw1_id, 1);
         setSwitchId(sw2_id, 2);
         setSwitchId(sw3_id, 3);
+
+        cloneToCollector(sw2_id);
 
     }
 }

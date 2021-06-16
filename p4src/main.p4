@@ -408,7 +408,6 @@ control IngressPipeImpl (inout parsed_headers_t    hdr,
         actions = {
             send_to_cpu;
             clone_to_cpu;
-            clone_to_collector;
             drop;
         }
         @name("acl_table_counter")
