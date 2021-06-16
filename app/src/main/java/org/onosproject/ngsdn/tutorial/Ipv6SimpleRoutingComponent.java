@@ -249,7 +249,7 @@ public class Ipv6SimpleRoutingComponent {
         final int COLLECTOR_CLONE_SESSION_ID = 90;
 
         final GroupDescription cloneGroupCollector = Utils.buildCloneGroup(
-                obj.appId(),
+                appId,
                 deviceId,
                 COLLECTOR_CLONE_SESSION_ID,
                 // Ports where to clone the packet.
