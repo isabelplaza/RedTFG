@@ -266,7 +266,46 @@
     {
       "id" : 2,
       "name" : "fl_0",
-      "elements" : []
+      "source_info" : {
+        "filename" : "p4src/main.p4",
+        "line" : 394,
+        "column" : 34,
+        "source_fragment" : "{ local_metadata }"
+      },
+      "elements" : [
+        {
+          "type" : "field",
+          "value" : ["scalars", "local_metadata_t.l4_src_port"]
+        },
+        {
+          "type" : "field",
+          "value" : ["scalars", "local_metadata_t.l4_dst_port"]
+        },
+        {
+          "type" : "field",
+          "value" : ["scalars", "local_metadata_t.is_multicast"]
+        },
+        {
+          "type" : "field",
+          "value" : ["scalars", "local_metadata_t.next_srv6_sid"]
+        },
+        {
+          "type" : "field",
+          "value" : ["scalars", "local_metadata_t.ip_proto"]
+        },
+        {
+          "type" : "field",
+          "value" : ["scalars", "local_metadata_t.icmp_type"]
+        },
+        {
+          "type" : "field",
+          "value" : ["scalars", "local_metadata_t.is_int"]
+        },
+        {
+          "type" : "field",
+          "value" : ["scalars", "local_metadata_t.sw_id"]
+        }
+      ]
     }
   ],
   "errors" : [
@@ -673,7 +712,7 @@
       "id" : 0,
       "source_info" : {
         "filename" : "p4src/main.p4",
-        "line" : 526,
+        "line" : 528,
         "column" : 8,
         "source_fragment" : "DeparserImpl"
       },
@@ -996,7 +1035,7 @@
             "filename" : "p4src/main.p4",
             "line" : 394,
             "column" : 8,
-            "source_fragment" : "clone(CloneType.I2E, 90)"
+            "source_fragment" : "clone3(CloneType.I2E, 90, { local_metadata })"
           }
         }
       ]
@@ -1277,7 +1316,7 @@
             "filename" : "p4src/main.p4",
             "line" : 55,
             "column" : 28,
-            "source_fragment" : "0xFE; //intentar poner un valor que no sea de algún protocolo que vaya a usar ..."
+            "source_fragment" : "0xFE; //use a value that is not used by any other protocol ..."
           }
         }
       ]
@@ -1409,14 +1448,48 @@
           "parameters" : [
             {
               "type" : "header",
-              "value" : "int_header"
+              "value" : "int_metadata"
             }
           ],
           "source_info" : {
             "filename" : "p4src/main.p4",
             "line" : 490,
             "column" : 12,
+            "source_fragment" : "hdr.int_metadata.setInvalid()"
+          }
+        },
+        {
+          "op" : "remove_header",
+          "parameters" : [
+            {
+              "type" : "header",
+              "value" : "int_header"
+            }
+          ],
+          "source_info" : {
+            "filename" : "p4src/main.p4",
+            "line" : 491,
+            "column" : 12,
             "source_fragment" : "hdr.int_header.setInvalid()"
+          }
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["ipv4", "protocol"]
+            },
+            {
+              "type" : "hexstr",
+              "value" : "0x00"
+            }
+          ],
+          "source_info" : {
+            "filename" : "p4src/main.p4",
+            "line" : 492,
+            "column" : 12,
+            "source_fragment" : "hdr.ipv4.protocol = 0"
           }
         }
       ]
@@ -1436,7 +1509,7 @@
           ],
           "source_info" : {
             "filename" : "p4src/main.p4",
-            "line" : 502,
+            "line" : 504,
             "column" : 12,
             "source_fragment" : "hdr.cpu_in.setValid()"
           }
@@ -1455,7 +1528,7 @@
           ],
           "source_info" : {
             "filename" : "p4src/main.p4",
-            "line" : 503,
+            "line" : 505,
             "column" : 12,
             "source_fragment" : "hdr.cpu_in.ingress_port = standard_metadata.ingress_port"
           }
@@ -1465,7 +1538,7 @@
           "parameters" : [],
           "source_info" : {
             "filename" : "p4src/main.p4",
-            "line" : 504,
+            "line" : 506,
             "column" : 12,
             "source_fragment" : "exit"
           }
@@ -1487,7 +1560,7 @@
           ],
           "source_info" : {
             "filename" : "p4src/main.p4",
-            "line" : 513,
+            "line" : 515,
             "column" : 12,
             "source_fragment" : "mark_to_drop(standard_metadata)"
           }
@@ -1990,7 +2063,7 @@
           "id" : 11,
           "source_info" : {
             "filename" : "p4src/main.p4",
-            "line" : 502,
+            "line" : 504,
             "column" : 12,
             "source_fragment" : "hdr.cpu_in.setValid(); ..."
           },
@@ -2019,7 +2092,7 @@
           "id" : 12,
           "source_info" : {
             "filename" : "p4src/main.p4",
-            "line" : 513,
+            "line" : 515,
             "column" : 12,
             "source_fragment" : "mark_to_drop(standard_metadata)"
           },
@@ -2197,7 +2270,7 @@
           "id" : 6,
           "source_info" : {
             "filename" : "p4src/main.p4",
-            "line" : 493,
+            "line" : 495,
             "column" : 12,
             "source_fragment" : "standard_metadata.egress_port == 255"
           },
@@ -2223,7 +2296,7 @@
           "id" : 7,
           "source_info" : {
             "filename" : "p4src/main.p4",
-            "line" : 511,
+            "line" : 513,
             "column" : 12,
             "source_fragment" : "local_metadata.is_multicast == true && ..."
           },

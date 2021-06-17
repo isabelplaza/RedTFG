@@ -52,7 +52,7 @@ const bit<16> ETHERTYPE_IPV4 = 0x0800;
 const bit<8> IP_PROTO_ICMP   = 1;
 const bit<8> IP_PROTO_TCP    = 6;
 const bit<8> IP_PROTO_UDP    = 17;
-const bit<8> IP_PROTO_INT    = 0xFE; //intentar poner un valor que no sea de algún protocolo que vaya a usar
+const bit<8> IP_PROTO_INT    = 0xFE; //use a value that is not used by any other protocol
 
 const mac_addr_t IPV6_MCAST_01 = 0x33_33_00_00_00_01;
 
@@ -391,7 +391,7 @@ control IngressPipeImpl (inout parsed_headers_t    hdr,
     }
 
     action clone_to_collector() {
-        clone(CloneType.I2E, COLLECTOR_CLONE_SESSION_ID);
+        clone3(CloneType.I2E, COLLECTOR_CLONE_SESSION_ID, { local_metadata });
     }
 
     table acl_table {
@@ -487,7 +487,9 @@ control EgressPipeImpl (inout parsed_headers_t hdr,
 
         if (local_metadata.sw_id == 2 && standard_metadata.egress_port != COLLECTOR_PORT) {
             hdr.int_data_header.setInvalid();
+            hdr.int_metadata.setInvalid();
             hdr.int_header.setInvalid();
+            hdr.ipv4.protocol = 0;
         }
 
         if (standard_metadata.egress_port == CPU_PORT) {
