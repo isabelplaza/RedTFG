@@ -245,7 +245,8 @@ public class Ipv6SimpleRoutingComponent {
     }
 
     private void cloneToCollector(DeviceId deviceId) {
-        final int COLLECTOR_PORT_ID = 4;
+        final long COLLECTOR_PORT_ID = 4;
+        PortNumber collectorPort = PortNumber.portNumber(COLLECTOR_PORT_ID);
         final int COLLECTOR_CLONE_SESSION_ID = 90;
 
         final GroupDescription cloneGroupCollector = Utils.buildCloneGroup(
@@ -254,7 +255,7 @@ public class Ipv6SimpleRoutingComponent {
                 COLLECTOR_CLONE_SESSION_ID,
                 // Ports where to clone the packet.
                 // Just controller in this case.
-                Collections.singleton(COLLECTOR_PORT_ID));
+                Collections.singleton(collectorPort));
 
         groupService.addGroup(cloneGroupCollector);
 
