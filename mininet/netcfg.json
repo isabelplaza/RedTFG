@@ -165,7 +165,7 @@
     },
     "00:00:00:00:00:1D/None": {
       "basic": {
-        "name": "h4",
+        "name": "collector",
         "locType": "grid",
         "gridX": 600,
         "gridY": 500

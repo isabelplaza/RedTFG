@@ -496,17 +496,17 @@ public class Ipv6SimpleRoutingComponent {
         HostId h1Id = HostId.hostId("00:00:00:00:00:1A/None");
         HostId h2Id = HostId.hostId("00:00:00:00:00:1B/None");
         HostId h3Id = HostId.hostId("00:00:00:00:00:1C/None");
-        HostId h4Id = HostId.hostId("00:00:00:00:00:1D/None");
+        HostId collectorId = HostId.hostId("00:00:00:00:00:1D/None");
 
 
         // Set bidirectional path
         setUpPath(h1Id, h2Id);
         setUpPath(h2Id, h1Id);
 
-        //setUpLongerPath(h3Id, h4Id);
-        //setUpLongerPath(h4Id, h3Id);
-        setUpPath(h3Id, h4Id);
-        setUpPath(h4Id, h3Id);
+        //setUpLongerPath(h3Id, collectorId);
+        //setUpLongerPath(collectorId, h3Id);
+        setUpPath(h3Id, collectorId);
+        setUpPath(collectorId, h3Id);
         
 
         // Set switches' IDs
