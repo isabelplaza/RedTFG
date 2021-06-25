@@ -25,6 +25,24 @@ Para arrancar la maqueta:
 
 
 
+Para poder tener comunicación IPv6:
+
+   1. mininet> h1 ifconfig h1-eth0 inet6 add 2001:1:1::a/64
+   2. mininet> h2 ifconfig h2-eth0 inet6 add 2001:1:1::b/64
+   3. mininet> h1 ip -6 neigh replace 2001:1:1::B lladdr 00:00:00:00:00:1B dev h1-eth0
+   4. mininet> h2 ip -6 neigh replace 2001:1:1::A lladdr 00:00:00:00:00:1A dev h2-eth0
+
+Para poder ejecutar iperf:
+
+   1. Añadir la siguiente línea antes del ultimo "make" en el fichero "./util/docker/stratum_bmv2/Dockerfile"
+        iperf
+   2. Ir al paso 4 del siguiente párrafo de instrucciones.
+   3. util/mn-cmd h2
+      iperf -s
+   4. mininet> h1 iperf -c h2 -M 100
+
+
+
 Estas son las instrucciones para tener en el contenedor Docker los ficheros de send.py y receive.py:
 
    1. Crear una carpera llamada "shared" en el directorio "./util/docker/stratum_bmv2/"

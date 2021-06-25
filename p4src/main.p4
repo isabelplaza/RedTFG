@@ -38,7 +38,7 @@
 
 // Maximum number of hops supported when using SRv6.
 // Required for Exercise 7.
-//#define SRV6_MAX_HOPS 4
+#define SRV6_MAX_HOPS 4
 
 typedef bit<9>   port_num_t;
 typedef bit<48>  mac_addr_t;
@@ -48,14 +48,26 @@ typedef bit<128> ipv6_addr_t;
 typedef bit<16>  l4_port_t;
 
 const bit<16> ETHERTYPE_IPV4 = 0x0800;
+const bit<16> ETHERTYPE_IPV6 = 0x86dd;
 
 const bit<8> IP_PROTO_ICMP   = 1;
 const bit<8> IP_PROTO_TCP    = 6;
 const bit<8> IP_PROTO_UDP    = 17;
+const bit<8> IP_PROTO_SRV6   = 43;
+const bit<8> IP_PROTO_ICMPV6 = 58;
 const bit<8> IP_PROTO_INT    = 0xFE; //use a value that is not used by any other protocol
 
 const mac_addr_t IPV6_MCAST_01 = 0x33_33_00_00_00_01;
+const mac_addr_t MAC_DST_H2 = 0x00_00_00_00_00_1B;
 
+const bit<8> ICMP6_TYPE_NS = 135;
+const bit<8> ICMP6_TYPE_NA = 136;
+
+const bit<8> NDP_OPT_TARGET_LL_ADDR = 2;
+
+const bit<32> NDP_FLAG_ROUTER    = 0x80000000;
+const bit<32> NDP_FLAG_SOLICITED = 0x40000000;
+const bit<32> NDP_FLAG_OVERRIDE  = 0x20000000;
 
 //------------------------------------------------------------------------------
 // HEADER DEFINITIONS
@@ -81,6 +93,31 @@ header ipv4_t {
     bit<16>  hdr_checksum;
     bit<32>  src_addr;
     bit<32>  dst_addr;
+}
+
+header ipv6_t {
+    bit<4>    version;
+    bit<8>    traffic_class;
+    bit<20>   flow_label;
+    bit<16>   payload_len;
+    bit<8>    next_hdr;
+    bit<8>    hop_limit;
+    bit<128>  src_addr;
+    bit<128>  dst_addr;
+}
+
+header srv6h_t {
+    bit<8>   next_hdr;
+    bit<8>   hdr_ext_len;
+    bit<8>   routing_type;
+    bit<8>   segment_left;
+    bit<8>   last_entry;
+    bit<8>   flags;
+    bit<16>  tag;
+}
+
+header srv6_list_t {
+    bit<128>  segment_id;
 }
 
 header tcp_t {
@@ -113,18 +150,39 @@ header icmp_t {
     bit<64>  timestamp;
 }
 
+header icmpv6_t {
+    bit<8>   type;
+    bit<8>   code;
+    bit<16>  checksum;
+}
+
+header ndp_t {
+    bit<32>      flags;
+    ipv6_addr_t  target_ipv6_addr;
+    // NDP option.
+    bit<8>       type;
+    bit<8>       length;
+    bit<48>      target_mac_addr;
+}
+
 header int_header_t {  //multiple of 8 size
-    bit<8>   ver;               //version number
+    bit<8>    ver;               //version number
     bit<32>   max_hop_cnt;       //maximun hop permitted
     bit<32>   total_hop_cnt;     //current number of hops
-    bit<8>   instruction_mask;  //INT instructions
+    bit<8>    instruction_mask;  //INT instructions
 }
 
 /*
 INT INSTRUCTIONS BITMAP:
 
-    bit0(MSB)   switch id
-    bit1        timestamp
+    bit0(MSB)   buffer occupancy
+    bit1        queue occupancy
+    bit2        egress port TX utilization
+    bit3        ingress port ID
+    bit4        egress port ID
+    bit5        ingress timestamp
+    bit6        egress timestamp
+    bit7        switch ID
 
 */
 
@@ -163,12 +221,17 @@ struct parsed_headers_t {
     cpu_in_header_t cpu_in;
     ethernet_t ethernet;
     ipv4_t ipv4;
+    ipv6_t ipv6;
+    srv6h_t srv6h;
+    srv6_list_t[SRV6_MAX_HOPS] srv6_list;
     int_header_t int_header;
     int_metadata_t int_metadata;
     int_data_header_t int_data_header;
     tcp_t tcp;
     udp_t udp;
     icmp_t icmp;
+    icmpv6_t icmpv6;
+    ndp_t ndp;
 }
 
 struct local_metadata_t {
@@ -208,6 +271,7 @@ parser ParserImpl (packet_in packet,
         packet.extract(hdr.ethernet);
         transition select(hdr.ethernet.ether_type){
             ETHERTYPE_IPV4: parse_ipv4;
+            ETHERTYPE_IPV6: parse_ipv6;
             default: accept;
         }
     }
@@ -220,6 +284,18 @@ parser ParserImpl (packet_in packet,
             IP_PROTO_UDP: parse_udp;
             IP_PROTO_ICMP: parse_icmp;
             IP_PROTO_INT: parse_int;
+            default: accept;
+        }
+    }
+
+    state parse_ipv6 {
+        packet.extract(hdr.ipv6);
+        local_metadata.ip_proto = hdr.ipv6.next_hdr;
+        transition select(hdr.ipv6.next_hdr) {
+            IP_PROTO_TCP: parse_tcp;
+            IP_PROTO_UDP: parse_udp;
+            IP_PROTO_ICMPV6: parse_icmpv6;
+            IP_PROTO_SRV6: parse_srv6;
             default: accept;
         }
     }
@@ -244,9 +320,61 @@ parser ParserImpl (packet_in packet,
         transition accept;
     }
 
+    state parse_icmpv6 {
+        packet.extract(hdr.icmpv6);
+        local_metadata.icmp_type = hdr.icmpv6.type;
+        transition select(hdr.icmpv6.type) {
+            ICMP6_TYPE_NS: parse_ndp;
+            ICMP6_TYPE_NA: parse_ndp;
+            default: accept;
+        }
+    }
+
+    state parse_ndp {
+        packet.extract(hdr.ndp);
+        transition accept;
+    }
+
+    state parse_srv6 {
+        packet.extract(hdr.srv6h);
+        transition parse_srv6_list;
+    }
+
+    state parse_srv6_list {
+        packet.extract(hdr.srv6_list.next);
+        bool next_segment = (bit<32>)hdr.srv6h.segment_left - 1 == (bit<32>)hdr.srv6_list.lastIndex;
+        transition select(next_segment) {
+            true: mark_current_srv6;
+            default: check_last_srv6;
+        }
+    }
+
+    state mark_current_srv6 {
+        local_metadata.next_srv6_sid = hdr.srv6_list.last.segment_id;
+        transition check_last_srv6;
+    }
+
+    state check_last_srv6 {
+        // working with bit<8> and int<32> which cannot be cast directly; using
+        // bit<32> as common intermediate type for comparision
+        bool last_segment = (bit<32>)hdr.srv6h.last_entry == (bit<32>)hdr.srv6_list.lastIndex;
+        transition select(last_segment) {
+            true: parse_srv6_next_hdr;
+            false: parse_srv6_list;
+        }
+    }
+
+    state parse_srv6_next_hdr {
+        transition select(hdr.srv6h.next_hdr) {
+            IP_PROTO_TCP: parse_tcp;
+            IP_PROTO_UDP: parse_udp;
+            IP_PROTO_ICMPV6: parse_icmpv6;
+            default: accept;
+        }
+    }
+
     state parse_int {
         packet.extract(hdr.int_header);
-        //bit<32> hop_cnt = packet.lookahead<int_header_t>().total_hop_cnt;
         bit<32> hop_cnt = hdr.int_header.total_hop_cnt;
         bit<32> offset = 80 * hop_cnt;
         packet.extract(hdr.int_metadata, offset);
@@ -362,6 +490,96 @@ control IngressPipeImpl (inout parsed_headers_t    hdr,
         counters = direct_counter(CounterType.packets_and_bytes);
     }
 
+    // *** TODO EXERCISE 5 (IPV6 ROUTING)
+    //
+    // 1. Create a table to to handle NDP messages to resolve the MAC address of
+    //    switch. This table should:
+    //    - match on hdr.ndp.target_ipv6_addr (exact match)
+    //    - provide action "ndp_ns_to_na" (look in snippets.p4)
+    //    - default_action should be "NoAction"
+    //
+    // 2. Create table to handle IPv6 routing. Create a L2 my station table (hit
+    //    when Ethernet destination address is the switch address). This table
+    //    should not do anything to the packet (i.e., NoAction), but the control
+    //    block below should use the result (table.hit) to decide how to process
+    //    the packet.
+    //
+    // 3. Create a table for IPv6 routing. An action selector should be use to
+    //    pick a next hop MAC address according to a hash of packet header
+    //    fields (IPv6 source/destination address and the flow label). Look in
+    //    snippets.p4 for an example of an action selector and table using it.
+    //
+    // You can name your tables whatever you like. You will need to fill
+    // the name in elsewhere in this exercise.
+
+    action ndp_ns_to_na(mac_addr_t target_mac) {
+            hdr.ethernet.src_addr = target_mac;
+            hdr.ethernet.dst_addr = IPV6_MCAST_01;
+            ipv6_addr_t host_ipv6_tmp = hdr.ipv6.src_addr;
+            hdr.ipv6.src_addr = hdr.ndp.target_ipv6_addr;
+            hdr.ipv6.dst_addr = host_ipv6_tmp;
+            hdr.ipv6.next_hdr = IP_PROTO_ICMPV6;
+            hdr.icmpv6.type = ICMP6_TYPE_NA;
+            hdr.ndp.flags = NDP_FLAG_ROUTER | NDP_FLAG_OVERRIDE;
+            hdr.ndp.type = NDP_OPT_TARGET_LL_ADDR;
+            hdr.ndp.length = 1;
+            hdr.ndp.target_mac_addr = target_mac;
+            standard_metadata.egress_spec = standard_metadata.ingress_port;
+        }
+
+        table ndp_reply_table {
+            key = {
+                hdr.ndp.target_ipv6_addr: exact;
+            }
+            actions = {
+                ndp_ns_to_na;
+            }
+            @name("ndp_reply_table_counter")
+            counters = direct_counter(CounterType.packets_and_bytes);
+        }
+
+// --- my_station_table ---------------------------------------------------
+
+    table my_station_table {
+        key = {
+            hdr.ethernet.dst_addr: exact;
+        }
+        actions = { NoAction; }
+        @name("my_station_table_counter")
+        counters = direct_counter(CounterType.packets_and_bytes);
+    }
+
+    // --- routing_v6_table ----------------------------------------------------
+
+    action_selector(HashAlgorithm.crc16, 32w1024, 32w16) ecmp_selector;
+
+    action set_next_hop(mac_addr_t dmac) {
+        hdr.ethernet.src_addr = hdr.ethernet.dst_addr;
+        hdr.ethernet.dst_addr = dmac;
+        // Decrement TTL
+        hdr.ipv6.hop_limit = hdr.ipv6.hop_limit - 1;
+    }
+    table routing_v6_table {
+      key = {
+          hdr.ipv6.dst_addr:          lpm;
+          // The following fields are not used for matching, but as input to the
+          // ecmp_selector hash function.
+          hdr.ipv6.dst_addr:          selector;
+          hdr.ipv6.src_addr:          selector;
+          hdr.ipv6.flow_label:        selector;
+          // The rest of the 5-tuple is optional per RFC6438
+          hdr.ipv6.next_hdr:          selector;
+          local_metadata.l4_src_port: selector;
+          local_metadata.l4_dst_port: selector;
+      }
+      actions = {
+          set_next_hop;
+      }
+      implementation = ecmp_selector;
+      @name("routing_v6_table_counter")
+      counters = direct_counter(CounterType.packets_and_bytes);
+    }
+
 
     // *** TODO EXERCISE 6 (SRV6)
     //
@@ -434,8 +652,37 @@ control IngressPipeImpl (inout parsed_headers_t    hdr,
 
         bool do_l3_l2 = true;
 
+        if (hdr.icmpv6.isValid() && hdr.icmpv6.type == ICMP6_TYPE_NS) {
+            // *** TODO EXERCISE 5
+            // Insert logic to handle NDP messages to resolve the MAC address of the
+            // switch. You should apply the NDP reply table created before.
+            // If this is an NDP NS packet, i.e., if a matching entry is found,
+            // unset the "do_l3_l2" flag to skip the L3 and L2 tables, as the
+            // "ndp_ns_to_na" action already set an egress port.
+
+            if (ndp_reply_table.apply().hit) {
+                        do_l3_l2 = false;
+            }
+        }
 
         if (do_l3_l2) {
+
+            // *** TODO EXERCISE 5
+            // Insert logic to match the My Station table and upon hit, the
+            // routing table. You should also add a conditional to drop the
+            // packet if the hop_limit reaches 0.
+
+            // *** TODO EXERCISE 6
+            // Insert logic to match the SRv6 My SID and Transit tables as well
+            // as logic to perform PSP behavior. HINT: This logic belongs
+            // somewhere between checking the switch's my station table and
+            // applying the routing table.
+
+            if (hdr.ipv6.isValid() && my_station_table.apply().hit) {
+               routing_v6_table.apply();
+               // Check TTL, drop packet if necessary to avoid loops.
+               if(hdr.ipv6.hop_limit == 0) { drop(); }
+            }
 
             // L2 bridging logic. Apply the exact table first...
             if (!l2_exact_table.apply().hit) {
@@ -459,37 +706,38 @@ control EgressPipeImpl (inout parsed_headers_t hdr,
                         inout local_metadata_t local_metadata,
                         inout standard_metadata_t standard_metadata) {
     apply {
-
-        if (hdr.ipv4.isValid() && (local_metadata.is_int != true)) { //If IPv4 header is valid, set INT header valid and set it a value
-
+        //If IPv4 header is valid, there is not an INT control header yet and the packet's final destination is h2,
+        //set an INT control header
+        if (hdr.ipv4.isValid() && (local_metadata.is_int != true) && (hdr.ethernet.dst_addr == MAC_DST_H2)) {
             hdr.int_header.setValid();
-            hdr.int_header.ver = 2;
-            hdr.int_header.max_hop_cnt = 3;
-            hdr.int_header.total_hop_cnt = 1; //first hop
-            hdr.int_header.instruction_mask = 3; //set both bits for switch id and timestamp metadata
+            hdr.int_header.ver = 2;                 //INT version: 2
+            hdr.int_header.max_hop_cnt = 3;         //max hop count: 3
+            hdr.int_header.total_hop_cnt = 1;       //This is the first hop, total hop count: 1
+            hdr.int_header.instruction_mask = 3;    //Set last two bits for switch id and egress timestamp INT metadata: 00000011
 
             hdr.int_data_header.setValid();
-            hdr.int_data_header.switch_id = local_metadata.sw_id;
+            hdr.int_data_header.switch_id = local_metadata.sw_id;   //set switch ID
             hdr.int_data_header.egress_timestamp = standard_metadata.egress_global_timestamp; //set egress timestamp
 
-            hdr.ipv4.protocol = IP_PROTO_INT;
+            hdr.ipv4.protocol = IP_PROTO_INT;       //set INT as next protocol in the IP header
 
         } else if (hdr.ipv4.isValid() && (local_metadata.is_int == true)) {
 
-            hdr.int_header.total_hop_cnt = hdr.int_header.total_hop_cnt + 1;
+            hdr.int_header.total_hop_cnt = hdr.int_header.total_hop_cnt + 1; //increment the total hop count
 
             hdr.int_data_header.setValid();
-            hdr.int_data_header.switch_id = local_metadata.sw_id;
+            hdr.int_data_header.switch_id = local_metadata.sw_id;   //set switch ID
             hdr.int_data_header.egress_timestamp = standard_metadata.egress_global_timestamp; //set egress timestamp
 
         }
 
-
+        //If it is the last hop and the packet's final destination is not the Collector (so it is h2, in this case),
+        //set every INT header invalid and restore the original next protocol in the IP header (TCP in this case)
         if (local_metadata.sw_id == 2 && standard_metadata.egress_port != COLLECTOR_PORT) {
             hdr.int_data_header.setInvalid();
             hdr.int_metadata.setInvalid();
             hdr.int_header.setInvalid();
-            hdr.ipv4.protocol = 0;
+            hdr.ipv4.protocol = IP_PROTO_TCP;
         }
 
         if (standard_metadata.egress_port == CPU_PORT) {
@@ -521,7 +769,29 @@ control EgressPipeImpl (inout parsed_headers_t hdr,
 control ComputeChecksumImpl(inout parsed_headers_t hdr,
                             inout local_metadata_t local_metadata)
 {
-    apply { /* EMPTY */}
+    apply {
+        // The following is used to update the ICMPv6 checksum of NDP
+        // NA packets generated by the ndp reply table in the ingress pipeline.
+        // This function is executed only if the NDP header is present.
+        update_checksum(hdr.ndp.isValid(),
+            {
+                hdr.ipv6.src_addr,
+                hdr.ipv6.dst_addr,
+                hdr.ipv6.payload_len,
+                8w0,
+                hdr.ipv6.next_hdr,
+                hdr.icmpv6.type,
+                hdr.icmpv6.code,
+                hdr.ndp.flags,
+                hdr.ndp.target_ipv6_addr,
+                hdr.ndp.type,
+                hdr.ndp.length,
+                hdr.ndp.target_mac_addr
+            },
+            hdr.icmpv6.checksum,
+            HashAlgorithm.csum16
+        );
+    }
 }
 
 
@@ -530,6 +800,9 @@ control DeparserImpl(packet_out packet, in parsed_headers_t hdr) {
         packet.emit(hdr.cpu_in);
         packet.emit(hdr.ethernet);
         packet.emit(hdr.ipv4);
+        packet.emit(hdr.ipv6);
+        packet.emit(hdr.srv6h);
+        packet.emit(hdr.srv6_list);
         packet.emit(hdr.int_header);
         packet.emit(hdr.int_metadata);
         packet.emit(hdr.int_data_header);

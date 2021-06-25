@@ -127,6 +127,8 @@ def handle_pkt(packet, flows, counters):
     f = open('int_data_h1.txt', 'w')
     f.write("\nThis is the last received packet\'s INT data.\n")
 
+    ft = open('timestamps.txt', 'a')
+
     for x in range(0, int_h.total_hop_cnt):
         int_m = INT_METADATA(pkt[INT_METADATA_OFFSET:(INT_METADATA_OFFSET+INT_METADATA_LENGTH)])
         int_m.show()
@@ -134,10 +136,13 @@ def handle_pkt(packet, flows, counters):
         f.write(str(int_m.sw_id))
         f.write("\nEgress timestamp %d: " % (x+1))
         f.write(str(int_m.egress_timestamp))
+        ft.write(str(int_m.egress_timestamp))
+        ft.write("\n")
         INT_METADATA_OFFSET = INT_METADATA_OFFSET + INT_METADATA_LENGTH
 
     f.write("\n")
     f.close()
+    ft.close()
     sys.stdout.flush()
 
 
