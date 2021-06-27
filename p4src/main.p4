@@ -255,6 +255,7 @@ parser ParserImpl (packet_in packet,
                    inout local_metadata_t local_metadata,
                    inout standard_metadata_t standard_metadata)
 {
+
     state start {
         transition select(standard_metadata.ingress_port) {
             CPU_PORT: parse_packet_out;
@@ -279,6 +280,7 @@ parser ParserImpl (packet_in packet,
     state parse_ipv4 {
         packet.extract(hdr.ipv4);
         local_metadata.ip_proto = hdr.ipv4.protocol;
+        local_metadata.is_int = false;
         transition select(hdr.ipv4.protocol) {
             IP_PROTO_TCP: parse_tcp;
             IP_PROTO_UDP: parse_udp;
@@ -708,7 +710,8 @@ control EgressPipeImpl (inout parsed_headers_t hdr,
     apply {
         //If IPv4 header is valid, there is not an INT control header yet and the packet's final destination is h2,
         //set an INT control header
-        if (hdr.ipv4.isValid() && (local_metadata.is_int != true) && (hdr.ethernet.dst_addr == MAC_DST_H2)) {
+        if (hdr.ipv4.isValid() && !local_metadata.is_int && hdr.ethernet.dst_addr == MAC_DST_H2) {
+
             hdr.int_header.setValid();
             hdr.int_header.ver = 2;                 //INT version: 2
             hdr.int_header.max_hop_cnt = 3;         //max hop count: 3
@@ -716,28 +719,33 @@ control EgressPipeImpl (inout parsed_headers_t hdr,
             hdr.int_header.instruction_mask = 3;    //Set last two bits for switch id and egress timestamp INT metadata: 00000011
 
             hdr.int_data_header.setValid();
-            hdr.int_data_header.switch_id = local_metadata.sw_id;   //set switch ID
-            hdr.int_data_header.egress_timestamp = standard_metadata.egress_global_timestamp; //set egress timestamp
+            hdr.int_data_header.switch_id = local_metadata.sw_id;   //Set switch ID
+            hdr.int_data_header.egress_timestamp = standard_metadata.egress_global_timestamp; //Set egress timestamp
 
-            hdr.ipv4.protocol = IP_PROTO_INT;       //set INT as next protocol in the IP header
+            hdr.ipv4.protocol = IP_PROTO_INT;       //Set INT as next protocol in the IP header
 
-        } else if (hdr.ipv4.isValid() && (local_metadata.is_int == true)) {
-
-            hdr.int_header.total_hop_cnt = hdr.int_header.total_hop_cnt + 1; //increment the total hop count
+        //If IPv4 header is valid and there is already an INT control header,
+        //Set another INT data header and update the INT control header
+        } else if (hdr.ipv4.isValid() && local_metadata.is_int) {
 
             hdr.int_data_header.setValid();
-            hdr.int_data_header.switch_id = local_metadata.sw_id;   //set switch ID
-            hdr.int_data_header.egress_timestamp = standard_metadata.egress_global_timestamp; //set egress timestamp
+            hdr.int_data_header.switch_id = local_metadata.sw_id;   //Set switch ID
+            hdr.int_data_header.egress_timestamp = standard_metadata.egress_global_timestamp; //Set egress timestamp
+
+            hdr.int_header.total_hop_cnt = hdr.int_header.total_hop_cnt + 1; //Increment the total hop count
 
         }
 
         //If it is the last hop and the packet's final destination is not the Collector (so it is h2, in this case),
         //set every INT header invalid and restore the original next protocol in the IP header (TCP in this case)
         if (local_metadata.sw_id == 2 && standard_metadata.egress_port != COLLECTOR_PORT) {
+
             hdr.int_data_header.setInvalid();
             hdr.int_metadata.setInvalid();
             hdr.int_header.setInvalid();
+
             hdr.ipv4.protocol = IP_PROTO_TCP;
+
         }
 
         if (standard_metadata.egress_port == CPU_PORT) {

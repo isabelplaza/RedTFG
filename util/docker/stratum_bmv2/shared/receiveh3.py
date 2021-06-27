@@ -124,20 +124,33 @@ def handle_pkt(packet, flows, counters):
     int_h = INT_HEADER(pkt[INT_HEADER_OFFSET:(INT_HEADER_OFFSET+INT_HEADER_LENGTH)])
     int_h.show()
 
-    f = open('int_data_h3.txt', 'w')
-    f.write("\nThis is the last received packet\'s INT data.\n")
+    f = open('int_data_h3h2.txt', 'a')
+    f.write("\n\n\n////////////////////////////////////////////////////////////////////////")
+    f.write("\nThis is the INT data collected from the traffic flow between h3 and h2.\n")
+
+    ft = open('timestamps_h3h2.txt', 'a')
 
     for x in range(0, int_h.total_hop_cnt):
+
         int_m = INT_METADATA(pkt[INT_METADATA_OFFSET:(INT_METADATA_OFFSET+INT_METADATA_LENGTH)])
         int_m.show()
+
         f.write("\n\nSwitch ID %d: " % (x+1))
         f.write(str(int_m.sw_id))
+
         f.write("\nEgress timestamp %d: " % (x+1))
         f.write(str(int_m.egress_timestamp))
+        f.write("\n")
+        f.write("////////////////////////////////////////////////////////////////////////")
+
+        ft.write(str(int_m.egress_timestamp))
+        ft.write("\n")
+
         INT_METADATA_OFFSET = INT_METADATA_OFFSET + INT_METADATA_LENGTH
 
-    f.write("\n")
+
     f.close()
+    ft.close()
     sys.stdout.flush()
 
 
